@@ -1,0 +1,7 @@
+{
+  "angella.discord.connected": "Discord bot connected successfully!",
+  "angella.discord.disconnected": "Discord bot disconnected",
+  "angella.config.loaded": "Angella configuration loaded",
+  "angella.config.error": "Error loading Angella configuration"
+}
+

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Hardcore Launcher</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>⚔️ Hardcore Server Launcher</h1>
+            <div class="header-right">
+                <div class="status-indicator">
+                    <span id="status-text">Готов к запуску</span>
+                </div>
+                <div class="server-info">
+                    <span class="server-ip">213.171.18.211:30081</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Левая панель - Профили и Игроки -->
+            <div class="left-panel">
+                <div class="profile-section">
+                    <h2>Профили</h2>
+                    <div class="profile-list" id="profile-list">
+                        <!-- Профили будут добавлены динамически -->
+                    </div>
+                    <button class="btn btn-primary" id="add-profile-btn">+ Создать профиль</button>
+                </div>
+
+                <div class="game-section">
+                    <h2>Запуск игры</h2>
+                    <div class="selected-profile" id="selected-profile-display">
+                        <p>Выберите профиль</p>
+                    </div>
+                    <button class="btn btn-success btn-large" id="launch-btn" disabled>
+                        🎮 Запустить игру
+                    </button>
+                    <div class="update-section">
+                        <button class="btn btn-secondary" id="check-update-btn">
+                            🔄 Проверить обновления
+                        </button>
+                        <button class="btn btn-secondary" id="install-fabric-btn">
+                            🔧 Установить Fabric
+                        </button>
+                        <div class="update-status" id="update-status"></div>
+                    </div>
+                </div>
+
+                <!-- Секция онлайн игроков -->
+                <div class="players-section">
+                    <h2>👥 Онлайн игроки <span class="player-count" id="player-count">(0)</span> <img src="img/beta.png" alt="BETA" class="beta-tag"></h2>
+                    <div class="players-list" id="players-list">
+                        <div class="players-loading">Загрузка списка игроков...</div>
+                    </div>
+                    <button class="btn btn-secondary btn-small" id="refresh-players-btn">
+                        🔄 Обновить
+                    </button>
+                </div>
+            </div>
+
+            <!-- Правая панель - BlueMap -->
+            <div class="right-panel" id="map-panel">
+                <div class="map-section">
+                    <h2>🗺️ Интерактивная карта</h2>
+                    <div class="map-container">
+                        <iframe 
+                            id="bluemap-frame" 
+                            src="http://213.171.18.211:30031/" 
+                            frameborder="0"
+                            allowfullscreen
+                            allow="webgl2; fullscreen"
+                            loading="eager">
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для создания/редактирования профиля -->
+    <div class="modal" id="profile-modal">
+        <div class="modal-content">
+            <span class="close" id="close-modal">&times;</span>
+            <h2 id="modal-title">Создать профиль</h2>
+            <form id="profile-form">
+                <div class="form-group">
+                    <label for="profile-name">Название профиля:</label>
+                    <input type="text" id="profile-name" required placeholder="Мой профиль">
+                </div>
+                <div class="form-group">
+                    <label for="player-name">Никнейм:</label>
+                    <input type="text" id="player-name" required placeholder="Steve" maxlength="16">
+                    <small>Максимум 16 символов</small>
+                </div>
+                <div class="form-group">
+                    <label for="profile-uuid">UUID (опционально):</label>
+                    <input type="text" id="profile-uuid" placeholder="Автоматически">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="button" class="btn btn-danger" id="delete-btn" style="display: none;">Удалить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Кастомное диалоговое окно подтверждения -->
+    <div class="modal" id="confirm-dialog">
+        <div class="modal-content confirm-dialog-content">
+            <div class="confirm-dialog-icon">⚠️</div>
+            <h2 id="confirm-dialog-title">Подтверждение</h2>
+            <p id="confirm-dialog-message" class="confirm-dialog-message"></p>
+            <p id="confirm-dialog-detail" class="confirm-dialog-detail"></p>
+            <div class="confirm-dialog-buttons">
+                <button class="btn btn-secondary" id="confirm-dialog-cancel">Отмена</button>
+                <button class="btn btn-danger" id="confirm-dialog-ok">Продолжить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кастомное диалоговое окно для alert -->
+    <div class="modal" id="alert-dialog">
+        <div class="modal-content alert-dialog-content">
+            <div class="alert-dialog-icon">ℹ️</div>
+            <h2 id="alert-dialog-title">Уведомление</h2>
+            <p id="alert-dialog-message" class="alert-dialog-message"></p>
+            <div class="alert-dialog-buttons">
+                <button class="btn btn-primary" id="alert-dialog-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

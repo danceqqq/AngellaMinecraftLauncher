@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "angella",
+  "version": "${version}",
+  "name": "Angella",
+  "description": "Beautiful Discord integration mod for Minecraft Fabric with SkinRestorer support",
+  "authors": [
+    "Angella Team"
+  ],
+  "contact": {
+    "homepage": "https://github.com/YourUsername/Angella",
+    "sources": "https://github.com/YourUsername/Angella"
+  },
+  "license": "MIT",
+  "icon": "assets/angella/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "com.angella.AngellaMod"
+    ]
+  },
+  "mixins": [
+    "angella.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.8"
+  },
+  "suggests": {
+    "skinrestorer": "*"
+  }
+}
+

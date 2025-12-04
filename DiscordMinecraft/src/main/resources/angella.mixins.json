@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.angella.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ServerPlayerEntityMixin",
+    "ServerAdvancementTrackerMixin",
+    "ServerPlayerEntityChatMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
+

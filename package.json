@@ -1,0 +1,47 @@
+{
+  "name": "minecraft-hardcore-launcher",
+  "version": "1.0.0",
+  "description": "Лаунчер для хардкор сервера Minecraft",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win"
+  },
+  "keywords": [
+    "minecraft",
+    "launcher",
+    "hardcore"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.5.16"
+  },
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "build": {
+    "appId": "com.hardcore.minecraft.launcher",
+    "productName": "Hardcore Minecraft Launcher",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "node_modules/electron/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

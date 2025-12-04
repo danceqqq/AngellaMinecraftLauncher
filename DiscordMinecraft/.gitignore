@@ -1,0 +1,36 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/client/**/build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Config (will be generated)
+config/
+

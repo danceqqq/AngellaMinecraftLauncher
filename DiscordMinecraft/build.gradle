@@ -1,0 +1,130 @@
+plugins {
+    id 'fabric-loom' version '1.8-SNAPSHOT'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Jitpack"
+        url = "https://jitpack.io"
+    }
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "angella" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+dependencies {
+    // Minecraft
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Fabric API
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    
+    // JDA for Discord Bot
+    implementation('net.dv8tion:JDA:5.1.1') {
+        exclude module: 'opus-java'
+    }
+    include('net.dv8tion:JDA:5.1.1') {
+        exclude module: 'opus-java'
+    }
+    
+    // JDA dependencies
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    include 'com.squareup.okhttp3:okhttp:4.12.0'
+    
+    implementation 'com.squareup.okio:okio:3.9.1'
+    include 'com.squareup.okio:okio:3.9.1'
+    
+    implementation 'net.sf.trove4j:trove4j:3.0.3'
+    include 'net.sf.trove4j:trove4j:3.0.3'
+    
+    implementation 'org.apache.commons:commons-collections4:4.4'
+    include 'org.apache.commons:commons-collections4:4.4'
+    
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+    include 'org.slf4j:slf4j-api:2.0.13'
+    
+    implementation 'com.neovisionaries:nv-websocket-client:2.14'
+    include 'com.neovisionaries:nv-websocket-client:2.14'
+    
+    // Additional JDA dependencies
+    implementation 'org.jetbrains:annotations:24.1.0'
+    include 'org.jetbrains:annotations:24.1.0'
+    
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
+    include 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
+    
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.1'
+    include 'com.fasterxml.jackson.core:jackson-annotations:2.17.1'
+    
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.17.1'
+    include 'com.fasterxml.jackson.core:jackson-core:2.17.1'
+    
+    // Gson for config
+    implementation 'com.google.code.gson:gson:2.10.1'
+    include 'com.google.code.gson:gson:2.10.1'
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "loader_version", project.loader_version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+                "minecraft_version": project.minecraft_version,
+                "loader_version": project.loader_version
+    }
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release = targetJavaVersion
+    }
+}
+
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    archivesBaseName = project.archives_base_name
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}"}
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+    }
+}
+
