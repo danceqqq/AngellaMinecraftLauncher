@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateProfileList();
     setupMapFallback();
     setupMapHover();
+    setupSettingsPanel();
     loadOnlinePlayers();
     // Обновляем список игроков каждые 30 секунд (уменьшено для производительности)
     setInterval(loadOnlinePlayers, 30000);
@@ -149,6 +150,163 @@ function setupMapHover() {
     });
 }
 
+// Настройка панели настроек запуска
+function setupSettingsPanel() {
+    const settingsPanel = document.getElementById('settings-panel');
+    if (!settingsPanel) return;
+    
+    let isExpanded = false;
+    let hoverTimeout = null;
+    
+    // При наведении - показываем превью
+    settingsPanel.addEventListener('mouseenter', () => {
+        if (!isExpanded) {
+            clearTimeout(hoverTimeout);
+            settingsPanel.classList.add('settings-hover');
+        }
+    });
+    
+    // При уходе мыши - скрываем превью
+    settingsPanel.addEventListener('mouseleave', () => {
+        if (!isExpanded) {
+            hoverTimeout = setTimeout(() => {
+                settingsPanel.classList.remove('settings-hover');
+            }, 200);
+        }
+    });
+    
+    // При клике - разворачиваем/сворачиваем
+    settingsPanel.addEventListener('click', (e) => {
+        // Игнорируем клики внутри панели настроек
+        if (e.target.closest('.settings-content')) {
+            return;
+        }
+        
+        if (!isExpanded) {
+            isExpanded = true;
+            settingsPanel.classList.remove('settings-hover');
+            settingsPanel.classList.add('settings-expanded');
+        } else {
+            // Сворачиваем только если клик не внутри панели
+            if (!e.target.closest('.settings-section')) {
+                isExpanded = false;
+                settingsPanel.classList.remove('settings-expanded');
+            }
+        }
+    });
+    
+    // При клике вне панели - сворачиваем
+    document.addEventListener('click', (e) => {
+        if (isExpanded && !settingsPanel.contains(e.target)) {
+            isExpanded = false;
+            settingsPanel.classList.remove('settings-expanded');
+        }
+    });
+    
+    // Загружаем сохраненные настройки
+    loadLaunchSettings();
+    
+    // Сохраняем настройки при изменении
+    const ramSelect = document.getElementById('ram-select');
+    const minRamSelect = document.getElementById('min-ram-select');
+    const fullscreenCheckbox = document.getElementById('fullscreen-checkbox');
+    const quickPlayCheckbox = document.getElementById('quick-play-checkbox');
+    const javaArgsInput = document.getElementById('java-args-input');
+    
+    if (ramSelect) {
+        ramSelect.addEventListener('change', saveLaunchSettings);
+    }
+    if (minRamSelect) {
+        minRamSelect.addEventListener('change', saveLaunchSettings);
+    }
+    if (fullscreenCheckbox) {
+        fullscreenCheckbox.addEventListener('change', saveLaunchSettings);
+    }
+    if (quickPlayCheckbox) {
+        quickPlayCheckbox.addEventListener('change', saveLaunchSettings);
+    }
+    if (javaArgsInput) {
+        javaArgsInput.addEventListener('change', saveLaunchSettings);
+    }
+}
+
+// Загрузка настроек запуска
+function loadLaunchSettings() {
+    try {
+        const settings = JSON.parse(localStorage.getItem('launchSettings') || '{}');
+        
+        const ramSelect = document.getElementById('ram-select');
+        const minRamSelect = document.getElementById('min-ram-select');
+        const fullscreenCheckbox = document.getElementById('fullscreen-checkbox');
+        const quickPlayCheckbox = document.getElementById('quick-play-checkbox');
+        const javaArgsInput = document.getElementById('java-args-input');
+        
+        if (ramSelect && settings.maxRam) {
+            ramSelect.value = settings.maxRam;
+        }
+        if (minRamSelect && settings.minRam) {
+            minRamSelect.value = settings.minRam;
+        }
+        if (fullscreenCheckbox) {
+            fullscreenCheckbox.checked = settings.fullscreen || false;
+        }
+        if (quickPlayCheckbox) {
+            quickPlayCheckbox.checked = settings.quickPlay !== false; // По умолчанию true
+        }
+        if (javaArgsInput && settings.javaArgs) {
+            javaArgsInput.value = settings.javaArgs;
+        }
+    } catch (error) {
+        console.error('[Renderer] Error loading launch settings:', error);
+    }
+}
+
+// Сохранение настроек запуска
+function saveLaunchSettings() {
+    try {
+        const ramSelect = document.getElementById('ram-select');
+        const minRamSelect = document.getElementById('min-ram-select');
+        const fullscreenCheckbox = document.getElementById('fullscreen-checkbox');
+        const quickPlayCheckbox = document.getElementById('quick-play-checkbox');
+        const javaArgsInput = document.getElementById('java-args-input');
+        
+        const settings = {
+            maxRam: ramSelect?.value || '2G',
+            minRam: minRamSelect?.value || '1G',
+            fullscreen: fullscreenCheckbox?.checked || false,
+            quickPlay: quickPlayCheckbox?.checked !== false,
+            javaArgs: javaArgsInput?.value || ''
+        };
+        
+        localStorage.setItem('launchSettings', JSON.stringify(settings));
+    } catch (error) {
+        console.error('[Renderer] Error saving launch settings:', error);
+    }
+}
+
+// Получение настроек запуска
+function getLaunchSettings() {
+    try {
+        const settings = JSON.parse(localStorage.getItem('launchSettings') || '{}');
+        return {
+            maxRam: settings.maxRam || '2G',
+            minRam: settings.minRam || '1G',
+            fullscreen: settings.fullscreen || false,
+            quickPlay: settings.quickPlay !== false,
+            javaArgs: settings.javaArgs || ''
+        };
+    } catch (error) {
+        console.error('[Renderer] Error getting launch settings:', error);
+        return {
+            maxRam: '2G',
+            minRam: '1G',
+            fullscreen: false,
+            quickPlay: true,
+            javaArgs: ''
+        };
+    }
+}
+
 // Настройка fallback для карты
 function setupMapFallback() {
     const iframe = document.getElementById('bluemap-frame');
@@ -248,6 +406,17 @@ function setupEventListeners() {
     if (installFabricBtn) {
         installFabricBtn.addEventListener('click', async () => {
             await installFabric();
+        });
+    }
+    
+    const installModsBtn = document.getElementById('install-mods-btn');
+    if (installModsBtn) {
+        installModsBtn.addEventListener('click', async () => {
+            await showAlertDialog(
+                'В данный момент функция установки модов недоступна.\n\nЭта функция находится в разработке и будет доступна в будущих обновлениях.',
+                'Функция недоступна',
+                '⚠️'
+            );
         });
     }
 
@@ -701,7 +870,12 @@ async function launchGame() {
 
     try {
         console.log('[Renderer] Launching game with profile:', currentProfile);
-        const result = await ipcRenderer.invoke('launch-game', currentProfile);
+        // Получаем настройки запуска
+        const launchSettings = getLaunchSettings();
+        const result = await ipcRenderer.invoke('launch-game', {
+            profile: currentProfile,
+            settings: launchSettings
+        });
         console.log('[Renderer] Launch result:', result);
         
         if (result && result.success) {

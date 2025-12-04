@@ -46,6 +46,9 @@
                         <button class="btn btn-secondary" id="install-fabric-btn">
                             🔧 Установить Fabric
                         </button>
+                        <button class="btn btn-secondary" id="install-mods-btn">
+                            📦 Установка модов
+                        </button>
                         <div class="update-status" id="update-status"></div>
                     </div>
                 </div>
@@ -62,7 +65,7 @@
                 </div>
             </div>
 
-            <!-- Правая панель - BlueMap -->
+            <!-- Правая панель - BlueMap и Настройки -->
             <div class="right-panel" id="map-panel">
                 <div class="map-section">
                     <h2>🗺️ Интерактивная карта</h2>
@@ -75,6 +78,54 @@
                             allow="webgl2; fullscreen"
                             loading="eager">
                         </iframe>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Панель настроек запуска -->
+            <div class="settings-panel" id="settings-panel">
+                <div class="settings-section">
+                    <h2>⚙️ Настройки запуска</h2>
+                    <div class="settings-content">
+                        <div class="setting-group">
+                            <label for="ram-select">Оперативная память (RAM):</label>
+                            <select id="ram-select" class="setting-select">
+                                <option value="1G">1 GB</option>
+                                <option value="2G" selected>2 GB</option>
+                                <option value="3G">3 GB</option>
+                                <option value="4G">4 GB</option>
+                                <option value="6G">6 GB</option>
+                                <option value="8G">8 GB</option>
+                                <option value="12G">12 GB</option>
+                                <option value="16G">16 GB</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label for="min-ram-select">Минимальная RAM:</label>
+                            <select id="min-ram-select" class="setting-select">
+                                <option value="512M">512 MB</option>
+                                <option value="1G" selected>1 GB</option>
+                                <option value="2G">2 GB</option>
+                                <option value="3G">3 GB</option>
+                                <option value="4G">4 GB</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="fullscreen-checkbox">
+                                Запускать в полноэкранном режиме
+                            </label>
+                        </div>
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="quick-play-checkbox" checked>
+                                Быстрый запуск (пропустить меню)
+                            </label>
+                        </div>
+                        <div class="setting-group">
+                            <label for="java-args-input">Дополнительные аргументы Java:</label>
+                            <input type="text" id="java-args-input" class="setting-input" placeholder="-XX:+UseG1GC">
+                        </div>
                     </div>
                 </div>
             </div>

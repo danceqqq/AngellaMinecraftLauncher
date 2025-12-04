@@ -174,10 +174,15 @@ ipcMain.handle('save-profiles', async (event, profiles) => {
 });
 
 // Запуск игры
-ipcMain.handle('launch-game', async (event, profile) => {
+ipcMain.handle('launch-game', async (event, data) => {
     return new Promise(async (resolve, reject) => {
         // Делаем функцию асинхронной для await
+        // data может быть либо объектом с profile и settings, либо просто profile (для обратной совместимости)
+        const profile = data?.profile || data;
+        const settings = data?.settings || {};
+        
         console.log('[Main] Launch game called with profile:', profile);
+        console.log('[Main] Launch settings:', settings);
         
         // Проверка профиля
         if (!profile || !profile.playerName) {
@@ -762,11 +767,17 @@ ipcMain.handle('launch-game', async (event, profile) => {
                 }
             }
             
+            // Используем настройки запуска из профиля или значения по умолчанию
+            const maxRam = settings.maxRam || '2G';
+            const minRam = settings.minRam || '1G';
+            const javaArgs = settings.javaArgs ? settings.javaArgs.split(' ') : [];
+            
             const args = [
-                '-Xmx2G',
-                '-Xms1G',
+                `-Xmx${maxRam}`,
+                `-Xms${minRam}`,
                 '-Dorg.lwjgl.librarypath=' + nativesDir, // Путь к нативным библиотекам LWJGL
                 '-Djava.library.path=' + nativesDir, // Альтернативный путь
+                ...javaArgs, // Дополнительные аргументы Java
                 '-cp',
                 classpath,
                 mainClass,
@@ -780,6 +791,14 @@ ipcMain.handle('launch-game', async (event, profile) => {
                 '--userType', 'legacy',
                 '--versionType', 'release'
             ];
+            
+            // Добавляем аргументы для полноэкранного режима и быстрого запуска
+            if (settings.fullscreen) {
+                args.push('--fullscreen');
+            }
+            if (settings.quickPlay) {
+                args.push('--quickPlaySingleplayer', '213.171.18.211:30081');
+            }
 
             // Логируем команду запуска (без полного classpath для читаемости)
             console.log('[Main] ========== LAUNCH COMMAND ==========');

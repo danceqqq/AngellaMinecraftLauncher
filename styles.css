@@ -155,6 +155,7 @@ body::before {
     position: relative;
     width: 100%;
     box-sizing: border-box;
+    align-items: stretch;
 }
 
 .left-panel {
@@ -780,6 +781,137 @@ body::before {
 .right-panel.map-hover::before {
     opacity: 0.5;
     transform: translate(-50%, -50%) rotate(0deg) scale(1.2);
+}
+
+/* Панель настроек запуска */
+.settings-panel {
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
+    position: relative;
+    width: 60px !important; /* Изначально свернута - только узкая полоска */
+    min-width: 60px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    cursor: pointer;
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    will-change: transform;
+    transform: translateZ(0);
+    transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.settings-panel .settings-section {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.settings-panel.settings-hover {
+    width: 200px !important; /* При наведении немного раскрывается */
+    transform: translateX(-20px);
+    box-shadow: 0 10px 40px rgba(123, 44, 191, 0.2);
+    z-index: 100;
+}
+
+.settings-panel.settings-hover .settings-section {
+    opacity: 0.3; /* Показываем превью */
+    pointer-events: none;
+}
+
+.settings-panel.settings-expanded {
+    flex: 1; /* При клике полностью раскрывается */
+    width: auto !important;
+    min-width: 300px;
+    max-width: 400px;
+    transform: translateX(0);
+    z-index: 200;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9);
+    cursor: default;
+}
+
+.settings-panel.settings-expanded .settings-section {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Индикатор свернутой панели настроек */
+.settings-panel:not(.settings-expanded)::before {
+    content: '⚙️';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    font-size: 2em;
+    color: var(--secondary-color);
+    z-index: 10;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+.settings-panel.settings-hover::before {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) rotate(0deg) scale(1.2);
+}
+
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.setting-group label {
+    color: var(--text-primary);
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.setting-select,
+.setting-input {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.setting-select:hover,
+.setting-input:hover {
+    border-color: var(--primary-color);
+}
+
+.setting-select:focus,
+.setting-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+}
+
+.setting-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.setting-group label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
 }
 
 .map-container {
