@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "fastjoin",
+  "version": "${version}",
+  "name": "FastJoin",
+  "description": "Ускоряет подключение к серверам Minecraft, пропуская избыточные DNS lookup запросы",
+  "authors": [
+    "FastJoin Team"
+  ],
+  "contact": {
+    "homepage": "https://github.com/hit-mc/fastjoin"
+  },
+  "license": "GPL-3.0",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.fastjoin.FastJoinMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.8"
+  }
+}
+

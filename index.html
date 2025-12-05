@@ -9,13 +9,23 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1>⚔️ Hardcore Server Launcher</h1>
-            <div class="header-right">
-                <div class="status-indicator">
-                    <span id="status-text">Готов к запуску</span>
+            <div class="header-top">
+                <h1>⚔️ Hardcore Server Launcher</h1>
+                <div class="header-right">
+                    <div class="status-indicator">
+                        <span id="status-text">Готов к запуску</span>
+                    </div>
+                    <div class="server-info">
+                        <span class="server-ip">213.171.18.211:30081</span>
+                    </div>
                 </div>
-                <div class="server-info">
-                    <span class="server-ip">213.171.18.211:30081</span>
+            </div>
+            <div class="players-marquee-container">
+                <img src="img/beta.png" alt="BETA" class="beta-tag-marquee">
+                <div class="players-marquee" id="players-marquee">
+                    <div class="marquee-content" id="marquee-content">
+                        <div class="players-loading-marquee">Загрузка игроков...</div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -24,7 +34,10 @@
             <!-- Левая панель - Профили и Игроки -->
             <div class="left-panel">
                 <div class="profile-section">
-                    <h2>Профили</h2>
+                    <h2>📋 Профили</h2>
+                    <div class="profile-stats-summary" id="profile-stats-summary">
+                        <!-- Статистика профилей -->
+                    </div>
                     <div class="profile-list" id="profile-list">
                         <!-- Профили будут добавлены динамически -->
                     </div>
@@ -36,9 +49,14 @@
                     <div class="selected-profile" id="selected-profile-display">
                         <p>Выберите профиль</p>
                     </div>
-                    <button class="btn btn-success btn-large" id="launch-btn" disabled>
-                        🎮 Запустить игру
-                    </button>
+                    <div class="launch-buttons-container">
+                        <button class="btn btn-success btn-large btn-launch-half" id="launch-btn" disabled>
+                            🎮 Запустить игру
+                        </button>
+                        <button class="btn btn-secondary btn-large btn-folder-half" id="open-folder-btn" title="Открыть папку Minecraft">
+                            📁
+                        </button>
+                    </div>
                     <div class="update-section">
                         <button class="btn btn-secondary" id="check-update-btn">
                             🔄 Проверить обновления
@@ -46,29 +64,16 @@
                         <button class="btn btn-secondary" id="install-fabric-btn">
                             🔧 Установить Fabric
                         </button>
-                        <button class="btn btn-secondary" id="install-mods-btn">
-                            📦 Установка модов
-                        </button>
                         <div class="update-status" id="update-status"></div>
                     </div>
                 </div>
 
-                <!-- Секция онлайн игроков -->
-                <div class="players-section">
-                    <h2>👥 Онлайн игроки <span class="player-count" id="player-count">(0)</span> <img src="img/beta.png" alt="BETA" class="beta-tag"></h2>
-                    <div class="players-list" id="players-list">
-                        <div class="players-loading">Загрузка списка игроков...</div>
-                    </div>
-                    <button class="btn btn-secondary btn-small" id="refresh-players-btn">
-                        🔄 Обновить
-                    </button>
-                </div>
             </div>
 
-            <!-- Правая панель - BlueMap и Настройки -->
+            <!-- Правая панель - BlueMap -->
             <div class="right-panel" id="map-panel">
-                <div class="map-section">
-                    <h2>🗺️ Интерактивная карта</h2>
+                <div class="map-section expandable" id="map-expandable">
+                    <h2 class="section-header">🗺️ Интерактивная карта</h2>
                     <div class="map-container">
                         <iframe 
                             id="bluemap-frame" 
@@ -80,25 +85,19 @@
                         </iframe>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Панель настроек запуска -->
-            <div class="settings-panel" id="settings-panel">
-                <div class="settings-section">
-                    <h2>⚙️ Настройки запуска</h2>
+                
+                <!-- Панель настроек запуска -->
+                <div class="settings-section expandable" id="settings-expandable">
+                    <h2 class="section-header">⚙️ Настройки запуска</h2>
                     <div class="settings-content">
                         <div class="setting-group">
-                            <label for="ram-select">Оперативная память (RAM):</label>
-                            <select id="ram-select" class="setting-select">
-                                <option value="1G">1 GB</option>
-                                <option value="2G" selected>2 GB</option>
-                                <option value="3G">3 GB</option>
-                                <option value="4G">4 GB</option>
-                                <option value="6G">6 GB</option>
-                                <option value="8G">8 GB</option>
-                                <option value="12G">12 GB</option>
-                                <option value="16G">16 GB</option>
-                            </select>
+                            <label for="ram-slider">
+                                Оперативная память (RAM): <span id="ram-value">2 GB</span>
+                            </label>
+                            <input type="range" id="ram-slider" class="setting-slider" min="1" max="16" value="2" step="1">
+                            <div class="ram-info">
+                                <span class="ram-info-text">Доступно: <span id="available-ram">...</span></span>
+                            </div>
                         </div>
                         <div class="setting-group">
                             <label for="min-ram-select">Минимальная RAM:</label>
@@ -112,19 +111,31 @@
                         </div>
                         <div class="setting-group">
                             <label>
-                                <input type="checkbox" id="fullscreen-checkbox">
-                                Запускать в полноэкранном режиме
+                                <input type="checkbox" id="fullscreen-checkbox" class="setting-checkbox">
+                                Полноэкранный режим
                             </label>
                         </div>
                         <div class="setting-group">
                             <label>
-                                <input type="checkbox" id="quick-play-checkbox" checked>
-                                Быстрый запуск (пропустить меню)
+                                <input type="checkbox" id="quick-play-checkbox" class="setting-checkbox">
+                                Быстрый запуск на сервер
                             </label>
                         </div>
                         <div class="setting-group">
-                            <label for="java-args-input">Дополнительные аргументы Java:</label>
-                            <input type="text" id="java-args-input" class="setting-input" placeholder="-XX:+UseG1GC">
+                            <label>
+                                <input type="checkbox" id="performance-mode-checkbox" class="setting-checkbox">
+                                Режим производительности (G1GC)
+                            </label>
+                        </div>
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="debug-mode-checkbox" class="setting-checkbox">
+                                Режим отладки (Debug)
+                            </label>
+                        </div>
+                        <div class="setting-group">
+                            <label for="java-args-textarea">Дополнительные аргументы Java:</label>
+                            <textarea id="java-args-input" class="setting-textarea" rows="2" placeholder="-Dsome.property=value"></textarea>
                         </div>
                     </div>
                 </div>
@@ -185,6 +196,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
 
     <script src="renderer.js"></script>
 </body>

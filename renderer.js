@@ -6,8 +6,107 @@ let profiles = [];
 let currentProfile = null;
 let editingProfileId = null;
 let isGameRunning = false;
-let gamePlayTime = 0; // Время игры в секундах
+let gamePlayTime = 0; // Время игры в секундах (сессия)
+let initialPlayTime = 0; // Начальное время профиля при запуске игры
 let gamePlayTimeInterval = null; // Интервал для обновления времени
+
+// ============================================
+// TOAST NOTIFICATION SYSTEM - ПРОФЕССИОНАЛЬНАЯ СИСТЕМА УВЕДОМЛЕНИЙ
+// ============================================
+
+function showToast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type] || icons.info}</div>
+        <div class="toast-message">${message}</div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Автоматическое удаление
+    setTimeout(() => {
+        toast.style.animation = 'toastSlideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+// ============================================
+// PROGRESS BAR SYSTEM - СИСТЕМА ПРОГРЕСС-БАРОВ
+// ============================================
+
+function createProgressBar(container, initialText = 'Загрузка...') {
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'progress-container';
+    progressContainer.innerHTML = `
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-text">${initialText}</div>
+    `;
+    container.appendChild(progressContainer);
+    return progressContainer;
+}
+
+function updateProgress(progressContainer, percent, text) {
+    const fill = progressContainer.querySelector('.progress-fill');
+    const textEl = progressContainer.querySelector('.progress-text');
+    if (fill) fill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    if (textEl && text) textEl.textContent = text;
+}
+
+function removeProgress(progressContainer) {
+    if (progressContainer && progressContainer.parentNode) {
+        progressContainer.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => progressContainer.remove(), 300);
+    }
+}
+
+// ============================================
+// PROFILE STATISTICS - СТАТИСТИКА ПРОФИЛЕЙ
+// ============================================
+
+function updateProfileStats() {
+    const statsContainer = document.getElementById('profile-stats-summary');
+    if (!statsContainer) return;
+    
+    const totalProfiles = profiles.length;
+    const totalPlayTime = profiles.reduce((sum, p) => sum + (p.playTime || 0), 0);
+    const totalAchievements = profiles.reduce((sum, p) => sum + (p.achievements || 0), 0);
+    
+    const formatTime = (seconds) => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (hours > 0) return `${hours}ч ${minutes}м`;
+        return `${minutes}м`;
+    };
+    
+    statsContainer.innerHTML = `
+        <div class="stat-item">
+            <span class="stat-value">${totalProfiles}</span>
+            <span class="stat-label">Профилей</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">${formatTime(totalPlayTime)}</span>
+            <span class="stat-label">Время игры</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">${totalAchievements}</span>
+            <span class="stat-label">Достижений</span>
+        </div>
+    `;
+}
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', async () => {
@@ -29,21 +128,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Слушаем событие завершения игры
     ipcRenderer.on('game-exited', (event, data) => {
-        const finalPlayTime = data?.playTime || gamePlayTime;
         isGameRunning = false;
         
-        // Сохраняем финальное время в профиль
-        if (currentProfile && finalPlayTime > 0) {
-            if (!currentProfile.playTime) currentProfile.playTime = 0;
-            currentProfile.playTime += finalPlayTime;
-            saveProfiles();
-        }
-        
-        gamePlayTime = 0;
+        // Останавливаем интервал
         if (gamePlayTimeInterval) {
             clearInterval(gamePlayTimeInterval);
             gamePlayTimeInterval = null;
         }
+        
+        // Сохраняем финальное время (уже обновлено в интервале)
+        if (currentProfile && gamePlayTime > 0) {
+            // Время уже обновлено в интервале как initialPlayTime + gamePlayTime
+            // Просто убеждаемся что оно корректно
+            const finalPlayTime = initialPlayTime + gamePlayTime;
+            if (currentProfile.playTime !== finalPlayTime) {
+                currentProfile.playTime = finalPlayTime;
+            }
+            console.log('[Renderer] Game exited. Final playTime:', currentProfile.playTime, '(initial:', initialPlayTime, '+ session:', gamePlayTime, ')');
+            saveProfiles();
+        }
+        
+        // Сбрасываем счетчики
+        gamePlayTime = 0;
+        initialPlayTime = 0;
         updateLaunchButton();
         updateProfileList();
     });
@@ -90,131 +197,122 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Настройка эффекта раскрытия карты
 function setupMapHover() {
-    const mapPanel = document.getElementById('map-panel');
-    if (!mapPanel) return;
+    const mapSection = document.getElementById('map-expandable');
+    if (!mapSection) return;
     
     let isExpanded = false;
-    let hoverTimeout = null;
     
-    // При наведении - показываем превью
-    mapPanel.addEventListener('mouseenter', () => {
+    // При наведении - показываем peek (немного раскрываем)
+    mapSection.addEventListener('mouseenter', () => {
         if (!isExpanded) {
-            clearTimeout(hoverTimeout);
-            mapPanel.classList.add('map-hover');
+            mapSection.classList.add('peek');
         }
     });
     
-    // При уходе курсора - скрываем превью
-    mapPanel.addEventListener('mouseleave', () => {
+    // При уходе курсора - убираем peek
+    mapSection.addEventListener('mouseleave', () => {
         if (!isExpanded) {
-            clearTimeout(hoverTimeout);
-            hoverTimeout = setTimeout(() => {
-                mapPanel.classList.remove('map-hover');
-            }, 100);
+            mapSection.classList.remove('peek');
         }
     });
     
-    // При клике на карту - раскрываем/сворачиваем
-    mapPanel.addEventListener('click', (e) => {
-        // Не раскрываем при клике на ссылки или кнопки внутри карты
-        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('a') || e.target.closest('button')) {
-            return;
-        }
-        
-        // Не раскрываем при клике на iframe (сама карта)
-        if (e.target.tagName === 'IFRAME' || e.target.closest('iframe')) {
-            return;
-        }
-        
-        // Если карта уже раскрыта и клик внутри карты (но не на iframe) - не сворачиваем
-        if (isExpanded && mapPanel.contains(e.target) && e.target.tagName !== 'IFRAME' && !e.target.closest('iframe')) {
-            return;
-        }
-        
-        e.stopPropagation(); // Останавливаем всплытие события
-        isExpanded = !isExpanded;
-        if (isExpanded) {
-            mapPanel.classList.add('map-expanded');
-            mapPanel.classList.remove('map-hover');
-        } else {
-            mapPanel.classList.remove('map-expanded');
-        }
-    });
+    // При клике на заголовок - раскрываем/сворачиваем
+    const header = mapSection.querySelector('.section-header');
+    if (header) {
+        header.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isExpanded = !isExpanded;
+            if (isExpanded) {
+                mapSection.classList.add('expanded');
+                mapSection.classList.remove('peek');
+                // Сворачиваем настройки
+                const settingsSection = document.getElementById('settings-expandable');
+                if (settingsSection) {
+                    settingsSection.classList.remove('expanded', 'peek');
+                }
+            } else {
+                mapSection.classList.remove('expanded');
+            }
+        });
+    }
     
     // При клике вне карты - сворачиваем
     document.addEventListener('click', (e) => {
-        if (isExpanded && !mapPanel.contains(e.target)) {
+        if (isExpanded && !mapSection.contains(e.target)) {
             isExpanded = false;
-            mapPanel.classList.remove('map-expanded');
+            mapSection.classList.remove('expanded');
         }
     });
 }
 
 // Настройка панели настроек запуска
 function setupSettingsPanel() {
-    const settingsPanel = document.getElementById('settings-panel');
-    if (!settingsPanel) return;
+    const settingsSection = document.getElementById('settings-expandable');
+    if (!settingsSection) return;
     
     let isExpanded = false;
-    let hoverTimeout = null;
     
-    // При наведении - показываем превью
-    settingsPanel.addEventListener('mouseenter', () => {
+    // При наведении - показываем peek
+    settingsSection.addEventListener('mouseenter', () => {
         if (!isExpanded) {
-            clearTimeout(hoverTimeout);
-            settingsPanel.classList.add('settings-hover');
+            settingsSection.classList.add('peek');
         }
     });
     
-    // При уходе мыши - скрываем превью
-    settingsPanel.addEventListener('mouseleave', () => {
+    // При уходе мыши - убираем peek
+    settingsSection.addEventListener('mouseleave', () => {
         if (!isExpanded) {
-            hoverTimeout = setTimeout(() => {
-                settingsPanel.classList.remove('settings-hover');
-            }, 200);
+            settingsSection.classList.remove('peek');
         }
     });
     
-    // При клике - разворачиваем/сворачиваем
-    settingsPanel.addEventListener('click', (e) => {
-        // Игнорируем клики внутри панели настроек
-        if (e.target.closest('.settings-content')) {
-            return;
-        }
-        
-        if (!isExpanded) {
-            isExpanded = true;
-            settingsPanel.classList.remove('settings-hover');
-            settingsPanel.classList.add('settings-expanded');
-        } else {
-            // Сворачиваем только если клик не внутри панели
-            if (!e.target.closest('.settings-section')) {
-                isExpanded = false;
-                settingsPanel.classList.remove('settings-expanded');
+    // При клике на заголовок - разворачиваем/сворачиваем
+    const header = settingsSection.querySelector('.section-header');
+    if (header) {
+        header.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isExpanded = !isExpanded;
+            if (isExpanded) {
+                settingsSection.classList.add('expanded');
+                settingsSection.classList.remove('peek');
+                // Сворачиваем карту
+                const mapSection = document.getElementById('map-expandable');
+                if (mapSection) {
+                    mapSection.classList.remove('expanded', 'peek');
+                }
+            } else {
+                settingsSection.classList.remove('expanded');
             }
-        }
-    });
+        });
+    }
     
     // При клике вне панели - сворачиваем
     document.addEventListener('click', (e) => {
-        if (isExpanded && !settingsPanel.contains(e.target)) {
+        if (isExpanded && !settingsSection.contains(e.target)) {
             isExpanded = false;
-            settingsPanel.classList.remove('settings-expanded');
+            settingsSection.classList.remove('expanded');
         }
     });
     
     // Загружаем сохраненные настройки
     loadLaunchSettings();
     
+    // Определяем доступную RAM
+    detectAvailableRAM();
+    
     // Сохраняем настройки при изменении
-    const ramSelect = document.getElementById('ram-select');
+    const ramSlider = document.getElementById('ram-slider');
     const minRamSelect = document.getElementById('min-ram-select');
     const fullscreenCheckbox = document.getElementById('fullscreen-checkbox');
     const quickPlayCheckbox = document.getElementById('quick-play-checkbox');
     const javaArgsInput = document.getElementById('java-args-input');
     
-    if (ramSelect) {
-        ramSelect.addEventListener('change', saveLaunchSettings);
+    if (ramSlider) {
+        ramSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            document.getElementById('ram-value').textContent = `${value} GB`;
+        });
+        ramSlider.addEventListener('change', saveLaunchSettings);
     }
     if (minRamSelect) {
         minRamSelect.addEventListener('change', saveLaunchSettings);
@@ -225,8 +323,48 @@ function setupSettingsPanel() {
     if (quickPlayCheckbox) {
         quickPlayCheckbox.addEventListener('change', saveLaunchSettings);
     }
+    
+    const performanceModeCheckbox = document.getElementById('performance-mode-checkbox');
+    const debugModeCheckbox = document.getElementById('debug-mode-checkbox');
+    if (performanceModeCheckbox) {
+        performanceModeCheckbox.addEventListener('change', saveLaunchSettings);
+    }
+    if (debugModeCheckbox) {
+        debugModeCheckbox.addEventListener('change', saveLaunchSettings);
+    }
     if (javaArgsInput) {
         javaArgsInput.addEventListener('change', saveLaunchSettings);
+    }
+    
+    // Кнопка открытия папки Minecraft
+    const openFolderBtn = document.getElementById('open-folder-btn');
+    if (openFolderBtn) {
+        openFolderBtn.addEventListener('click', async () => {
+            try {
+                await ipcRenderer.invoke('open-minecraft-folder');
+            } catch (error) {
+                console.error('[Renderer] Error opening Minecraft folder:', error);
+            }
+        });
+    }
+}
+
+// Определение доступной RAM
+async function detectAvailableRAM() {
+    try {
+        const totalRAM = await ipcRenderer.invoke('get-system-ram');
+        const availableRAMEl = document.getElementById('available-ram');
+        if (availableRAMEl && totalRAM) {
+            availableRAMEl.textContent = `${totalRAM} GB`;
+            
+            // Устанавливаем максимум ползунка
+            const ramSlider = document.getElementById('ram-slider');
+            if (ramSlider) {
+                ramSlider.max = Math.min(totalRAM, 32); // Максимум 32GB
+            }
+        }
+    } catch (error) {
+        console.error('[Renderer] Error detecting RAM:', error);
     }
 }
 
@@ -235,14 +373,19 @@ function loadLaunchSettings() {
     try {
         const settings = JSON.parse(localStorage.getItem('launchSettings') || '{}');
         
-        const ramSelect = document.getElementById('ram-select');
+        const ramSlider = document.getElementById('ram-slider');
+        const ramValue = document.getElementById('ram-value');
         const minRamSelect = document.getElementById('min-ram-select');
         const fullscreenCheckbox = document.getElementById('fullscreen-checkbox');
         const quickPlayCheckbox = document.getElementById('quick-play-checkbox');
+        const performanceModeCheckbox = document.getElementById('performance-mode-checkbox');
+        const debugModeCheckbox = document.getElementById('debug-mode-checkbox');
         const javaArgsInput = document.getElementById('java-args-input');
         
-        if (ramSelect && settings.maxRam) {
-            ramSelect.value = settings.maxRam;
+        if (ramSlider && settings.maxRam) {
+            const ramGB = parseInt(settings.maxRam.replace('G', ''));
+            ramSlider.value = ramGB;
+            if (ramValue) ramValue.textContent = `${ramGB} GB`;
         }
         if (minRamSelect && settings.minRam) {
             minRamSelect.value = settings.minRam;
@@ -251,10 +394,20 @@ function loadLaunchSettings() {
             fullscreenCheckbox.checked = settings.fullscreen || false;
         }
         if (quickPlayCheckbox) {
-            quickPlayCheckbox.checked = settings.quickPlay !== false; // По умолчанию true
+            quickPlayCheckbox.checked = settings.quickPlay !== false;
+        }
+        if (performanceModeCheckbox) {
+            performanceModeCheckbox.checked = settings.performanceMode || false;
+        }
+        if (debugModeCheckbox) {
+            debugModeCheckbox.checked = settings.debugMode || false;
         }
         if (javaArgsInput && settings.javaArgs) {
-            javaArgsInput.value = settings.javaArgs;
+            // Убираем автоматически добавленные аргументы из отображения
+            let displayArgs = settings.javaArgs;
+            displayArgs = displayArgs.replace('-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200', '').trim();
+            displayArgs = displayArgs.replace('-Dfabric.development=true -Dfabric.log.level=debug', '').trim();
+            javaArgsInput.value = displayArgs;
         }
     } catch (error) {
         console.error('[Renderer] Error loading launch settings:', error);
@@ -262,20 +415,39 @@ function loadLaunchSettings() {
 }
 
 // Сохранение настроек запуска
-function saveLaunchSettings() {
+async function saveLaunchSettings() {
     try {
-        const ramSelect = document.getElementById('ram-select');
+        const ramSlider = document.getElementById('ram-slider');
         const minRamSelect = document.getElementById('min-ram-select');
         const fullscreenCheckbox = document.getElementById('fullscreen-checkbox');
         const quickPlayCheckbox = document.getElementById('quick-play-checkbox');
+        const performanceModeCheckbox = document.getElementById('performance-mode-checkbox');
+        const debugModeCheckbox = document.getElementById('debug-mode-checkbox');
         const javaArgsInput = document.getElementById('java-args-input');
         
+        // Собираем Java аргументы
+        let javaArgs = javaArgsInput?.value || '';
+        
+        // Добавляем G1GC если включен режим производительности
+        if (performanceModeCheckbox?.checked) {
+            const g1gcArgs = '-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200';
+            javaArgs = javaArgs ? `${g1gcArgs} ${javaArgs}` : g1gcArgs;
+        }
+        
+        // Добавляем debug если включен
+        if (debugModeCheckbox?.checked) {
+            const debugArgs = '-Dfabric.development=true -Dfabric.log.level=debug';
+            javaArgs = javaArgs ? `${debugArgs} ${javaArgs}` : debugArgs;
+        }
+        
         const settings = {
-            maxRam: ramSelect?.value || '2G',
+            maxRam: ramSlider ? `${ramSlider.value}G` : '2G',
             minRam: minRamSelect?.value || '1G',
             fullscreen: fullscreenCheckbox?.checked || false,
             quickPlay: quickPlayCheckbox?.checked !== false,
-            javaArgs: javaArgsInput?.value || ''
+            performanceMode: performanceModeCheckbox?.checked || false,
+            debugMode: debugModeCheckbox?.checked || false,
+            javaArgs: javaArgs
         };
         
         localStorage.setItem('launchSettings', JSON.stringify(settings));
@@ -372,8 +544,12 @@ async function loadProfiles() {
         const profilesData = await ipcRenderer.invoke('get-profiles');
         profiles = profilesData || [];
         console.log('[Renderer] Loaded profiles:', profiles.length, profiles);
+        if (profiles.length > 0) {
+            showToast(`Загружено профилей: ${profiles.length}`, 'success', 2000);
+        }
     } catch (error) {
         console.error('[Renderer] Ошибка загрузки профилей:', error);
+        showToast('Ошибка загрузки профилей', 'error');
         profiles = [];
     }
 }
@@ -436,13 +612,6 @@ function setupEventListeners() {
         });
     }
     
-    // Кнопка обновления списка игроков
-    const refreshPlayersBtn = document.getElementById('refresh-players-btn');
-    if (refreshPlayersBtn) {
-        refreshPlayersBtn.addEventListener('click', async () => {
-            await loadOnlinePlayers();
-        });
-    }
 
 
     // Модальное окно
@@ -485,6 +654,10 @@ function updateProfileList() {
     profileList.innerHTML = '';
 
     console.log('[Renderer] Updating profile list, profiles count:', profiles.length);
+    
+    // Обновляем статистику профилей
+    updateProfileStats();
+    
     if (profiles.length === 0) {
         profileList.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">Нет профилей. Создайте первый профиль!</p>';
         return;
@@ -609,10 +782,12 @@ async function checkGameStatus() {
             if (!wasRunning) {
                 // Игра только что запустилась
                 gamePlayTime = 0;
+                // Сохраняем начальное время профиля перед запуском игры
+                initialPlayTime = currentProfile?.playTime || 0;
+                console.log('[Renderer] Game started. Initial playTime:', initialPlayTime);
+                
                 // Запускаем интервал для обновления времени каждую секунду
                 if (!gamePlayTimeInterval) {
-                    // Сохраняем начальное время профиля перед запуском игры
-                    const initialPlayTime = currentProfile.playTime || 0;
                     gamePlayTimeInterval = setInterval(() => {
                         if (isGameRunning && currentProfile) {
                             gamePlayTime++;
@@ -620,6 +795,7 @@ async function checkGameStatus() {
                             currentProfile.playTime = initialPlayTime + gamePlayTime;
                             // Сохраняем каждые 60 секунд
                             if (gamePlayTime % 60 === 0) {
+                                console.log('[Renderer] Saving playTime:', currentProfile.playTime, '(initial:', initialPlayTime, '+ session:', gamePlayTime, ')');
                                 saveProfiles();
                             }
                             // Обновляем отображение каждые 5 минут (300 секунд)
@@ -628,16 +804,6 @@ async function checkGameStatus() {
                             }
                         }
                     }, 1000);
-                }
-            } else {
-                // Игра уже была запущена, обновляем время из статуса
-                if (status.playTime !== undefined) {
-                    // status.playTime - это общее время, нужно вычислить gamePlayTime
-                    const initialPlayTime = (currentProfile?.playTime || 0) - gamePlayTime;
-                    gamePlayTime = status.playTime - initialPlayTime;
-                    if (currentProfile && gamePlayTime > 0) {
-                        currentProfile.playTime = initialPlayTime + gamePlayTime;
-                    }
                 }
             }
         } else {
@@ -648,13 +814,22 @@ async function checkGameStatus() {
                     clearInterval(gamePlayTimeInterval);
                     gamePlayTimeInterval = null;
                 }
-                // Сохраняем финальное время
+                
+                // Сохраняем финальное время (уже обновлено в интервале, просто финализируем)
                 if (currentProfile && gamePlayTime > 0) {
-                    if (!currentProfile.playTime) currentProfile.playTime = 0;
-                    currentProfile.playTime += gamePlayTime;
+                    // Время уже обновлено в интервале как initialPlayTime + gamePlayTime
+                    // Просто убеждаемся что оно корректно
+                    const finalPlayTime = initialPlayTime + gamePlayTime;
+                    if (currentProfile.playTime !== finalPlayTime) {
+                        currentProfile.playTime = finalPlayTime;
+                    }
+                    console.log('[Renderer] Game ended. Final playTime:', currentProfile.playTime, '(initial:', initialPlayTime, '+ session:', gamePlayTime, ')');
                     await saveProfiles();
                 }
+                
+                // Сбрасываем счетчики
                 gamePlayTime = 0;
+                initialPlayTime = 0;
             }
         }
         
@@ -866,7 +1041,18 @@ async function launchGame() {
     
     // Показываем статус в update-status
     updateStatus.className = 'update-status show info';
-    updateStatus.textContent = 'Запуск игры...';
+    updateStatus.innerHTML = '';
+    
+    // Добавляем прогресс-бар (объявляем вне try для доступа в catch)
+    let progressBar = null;
+    try {
+        progressBar = createProgressBar(updateStatus, 'Подготовка к запуску...');
+        updateProgress(progressBar, 20, 'Загрузка настроек...');
+    } catch (e) {
+        console.warn('[Renderer] Could not create progress bar:', e);
+    }
+    
+    showToast('Запуск игры...', 'info', 2000);
 
     try {
         console.log('[Renderer] Launching game with profile:', currentProfile);
@@ -885,37 +1071,20 @@ async function launchGame() {
             statusText.style.background = 'var(--success-color)';
             updateStatus.className = 'update-status show success';
             updateStatus.textContent = 'Игра успешно запущена!';
+            showToast('🎮 Игра успешно запущена!', 'success');
             
             // Инициализируем время игры для профиля
             // НЕ сбрасываем playTime, так как это общее накопленное время
             if (currentProfile) {
                 if (!currentProfile.playTime) currentProfile.playTime = 0;
+                // Сохраняем начальное время перед запуском игры
+                initialPlayTime = currentProfile.playTime;
+                console.log('[Renderer] Game launched. Initial playTime:', initialPlayTime);
                 // Сохраняем начальное состояние
                 await saveProfiles();
             }
             
-            // Запускаем интервал для обновления времени
-            if (!gamePlayTimeInterval) {
-                // Сохраняем начальное время профиля перед запуском игры
-                const initialPlayTime = currentProfile.playTime || 0;
-                gamePlayTimeInterval = setInterval(() => {
-                    if (isGameRunning) {
-                        gamePlayTime++;
-                        if (currentProfile) {
-                            // Обновляем время: начальное + текущая сессия
-                            currentProfile.playTime = initialPlayTime + gamePlayTime;
-                            // Сохраняем каждые 60 секунд
-                            if (gamePlayTime % 60 === 0) {
-                                saveProfiles();
-                            }
-                        }
-                        // Обновляем отображение каждые 5 минут
-                        if (gamePlayTime % 300 === 0) {
-                            updatePlayTimeDisplay();
-                        }
-                    }
-                }, 1000);
-            }
+            // Интервал для обновления времени создается в checkGameStatus()
             
             updateLaunchButton();
             updateProfileList();
@@ -937,6 +1106,11 @@ async function launchGame() {
         } else {
             throw new Error(result?.error || 'Неизвестная ошибка запуска');
         }
+        
+        // Удаляем прогресс-бар после успешного запуска
+        if (progressBar) {
+            setTimeout(() => removeProgress(progressBar), 2000);
+        }
     } catch (error) {
         console.error('[Renderer] Ошибка запуска игры:', error);
         const errorMessage = error.message || 'Неизвестная ошибка';
@@ -944,9 +1118,15 @@ async function launchGame() {
         statusText.style.background = 'var(--danger-color)';
         updateStatus.className = 'update-status show error';
         updateStatus.textContent = `Ошибка: ${errorMessage}`;
+        showToast(`❌ Ошибка: ${errorMessage}`, 'error', 5000);
         await showAlertDialog('Ошибка запуска игры: ' + errorMessage, 'Ошибка запуска', '❌');
         isGameRunning = false;
         updateLaunchButton();
+        
+        // Удаляем прогресс-бар при ошибке
+        if (progressBar) {
+            removeProgress(progressBar);
+        }
     } finally {
         // Не разблокируем кнопку, если игра запущена
         if (!isGameRunning) {
@@ -1168,59 +1348,49 @@ function escapeHtml(text) {
 
 // Загрузка списка онлайн игроков
 async function loadOnlinePlayers() {
-    const playersList = document.getElementById('players-list');
-    const playerCount = document.getElementById('player-count');
+    const marqueeContent = document.getElementById('marquee-content');
     
-    if (!playersList) return;
+    if (!marqueeContent) return;
     
-    playersList.innerHTML = '<div class="players-loading">Загрузка...</div>';
+    marqueeContent.innerHTML = '<div class="players-loading-marquee">Загрузка...</div>';
     
     try {
         const result = await ipcRenderer.invoke('get-online-players');
-        console.log('[Renderer] Received players data:', result); // Debug
+        console.log('[Renderer] Received players data:', result);
         
         const { players, playersWithHeads, online, max } = result;
         console.log('[Renderer] Players with heads:', playersWithHeads?.length, playersWithHeads);
         
-        // Обновляем счетчик
-        if (playerCount) {
-            playerCount.textContent = `(${online || 0}/${max || 20})`;
-        }
-        
-        // Очищаем список
-        playersList.innerHTML = '';
+        // Очищаем содержимое
+        marqueeContent.innerHTML = '';
         
         if (!playersWithHeads || !Array.isArray(playersWithHeads) || playersWithHeads.length === 0) {
-            console.log('[Renderer] No players with heads found, playersWithHeads:', playersWithHeads);
-            playersList.innerHTML = '<div class="players-empty">Нет игроков онлайн</div>';
+            console.log('[Renderer] No players with heads found');
+            marqueeContent.innerHTML = '<div class="marquee-player-item">Нет игроков онлайн</div>';
         } else {
-            console.log('[Renderer] Displaying players:', playersWithHeads.length, playersWithHeads); // Debug
-            // Добавляем игроков с головами из API
-            playersWithHeads.forEach((player, index) => {
-                if (!player) {
-                    console.warn('[Renderer] Skipping null/undefined player at index', index);
-                    return; // Пропускаем null/undefined
-                }
+            console.log('[Renderer] Displaying players in marquee:', playersWithHeads.length);
+            
+            // Создаем функцию для создания карточки игрока
+            const createPlayerItem = (player) => {
+                if (!player) return null;
                 
                 const playerItem = document.createElement('div');
-                playerItem.className = 'player-item';
+                playerItem.className = 'marquee-player-item';
                 
                 const playerName = typeof player === 'string' ? player : (player.name || 'Unknown');
                 const isBot = player.isBot === true || playerName === 'Angella' || (playerName && playerName.includes('Angella'));
                 
-                console.log('[Renderer] Processing player:', playerName, 'isBot:', isBot, 'player object:', player);
-                
-                // Для бота используем fallback URL если основной не работает
+                // Для бота используем аватар из объекта (обновленный из Discord)
                 let headUrl;
                 let fallbackUrl;
                 if (isBot) {
-                    // Используем аватар из объекта или fallback
+                    // Используем headUrl из объекта (обновленный аватар из Discord)
                     headUrl = (typeof player === 'object' && player.headUrl) 
                         ? player.headUrl 
-                        : 'https://cdn.discordapp.com/embed/avatars/0.png';
+                        : 'assets/angella-avatar.png';
                     fallbackUrl = (typeof player === 'object' && player.headUrlFallback)
                         ? player.headUrlFallback
-                        : 'https://cdn.discordapp.com/embed/avatars/0.png';
+                        : 'assets/angella-avatar.png';
                 } else {
                     headUrl = typeof player === 'object' && player.headUrl 
                         ? player.headUrl 
@@ -1228,30 +1398,44 @@ async function loadOnlinePlayers() {
                     fallbackUrl = 'https://mc-heads.net/avatar/MHF_Steve/32';
                 }
                 
-                // Используем имя как есть
                 const displayName = playerName;
                 
-                // Добавляем тег BOT для бота
-                const botTag = isBot ? '<img src="img/bot.png" alt="BOT" class="player-tag bot-tag">' : '';
+                // Для бота добавляем иконку bot.png
+                const botIcon = isBot ? '<img src="img/bot.png" alt="BOT" class="marquee-bot-icon">' : '';
                 
                 playerItem.innerHTML = `
-                    <img src="${headUrl}" alt="${escapeHtml(displayName)}" class="player-head ${isBot ? 'bot-head' : ''}" 
+                    <img src="${headUrl}" alt="${escapeHtml(displayName)}" class="marquee-player-head" 
                          onerror="this.src='${fallbackUrl}'">
-                    <span class="player-name-wrapper">
-                        <span class="player-name ${isBot ? 'bot-name' : ''}">${escapeHtml(displayName)}</span>
-                        ${botTag}
-                    </span>
+                    <span class="marquee-player-name">${escapeHtml(displayName)}</span>
+                    ${botIcon}
                 `;
                 
-                playersList.appendChild(playerItem);
+                return playerItem;
+            };
+            
+            // Создаем контейнер для игроков
+            const playersContainer = document.createElement('div');
+            playersContainer.className = 'marquee-players';
+            
+            // Добавляем игроков с головами
+            playersWithHeads.forEach((player, index) => {
+                if (!player) {
+                    console.warn('[Renderer] Skipping null/undefined player at index', index);
+                    return;
+                }
+                
+                const playerItem = createPlayerItem(player);
+                if (playerItem) {
+                    playersContainer.appendChild(playerItem);
+                }
             });
+            
+            // Добавляем только один контейнер - карточки будут появляться по одной
+            marqueeContent.appendChild(playersContainer);
         }
     } catch (error) {
         console.error('Ошибка загрузки списка игроков:', error);
-        playersList.innerHTML = '<div class="players-empty">Ошибка загрузки списка игроков</div>';
-        if (playerCount) {
-            playerCount.textContent = '(?)';
-        }
+        marqueeContent.innerHTML = '<div class="marquee-player-item">Ошибка загрузки</div>';
     }
 }
 

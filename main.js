@@ -173,6 +173,32 @@ ipcMain.handle('save-profiles', async (event, profiles) => {
     }
 });
 
+// Открытие папки Minecraft
+ipcMain.handle('open-minecraft-folder', async () => {
+    try {
+        const { shell } = require('electron');
+        await shell.openPath(LAUNCHER_PATH);
+        return { success: true };
+    } catch (error) {
+        console.error('[Main] Error opening Minecraft folder:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Определение доступной RAM
+ipcMain.handle('get-system-ram', async () => {
+    try {
+        const os = require('os');
+        const totalRAM = os.totalmem();
+        const totalRAMGB = Math.floor(totalRAM / (1024 * 1024 * 1024));
+        console.log('[Main] Total system RAM:', totalRAMGB, 'GB');
+        return totalRAMGB;
+    } catch (error) {
+        console.error('[Main] Error getting system RAM:', error);
+        return 8; // Fallback
+    }
+});
+
 // Запуск игры
 ipcMain.handle('launch-game', async (event, data) => {
     return new Promise(async (resolve, reject) => {
@@ -458,7 +484,7 @@ ipcMain.handle('launch-game', async (event, data) => {
             
             // Добавляем моды (из директории версии)
             if (fsSync.existsSync(modsDir)) {
-                const mods = fsSync.readdirSync(modsDir).filter(f => f.endsWith('.jar'));
+                const mods = fsSync.readdirSync(modsDir).filter(f => f.endsWith('.jar') && !f.includes('fastjoin'));
                 for (const mod of mods) {
                     classpathParts.push(path.join(modsDir, mod));
                 }
@@ -1212,6 +1238,7 @@ async function installFabric() {
     
     // Создаем необходимые директории
     await fs.mkdir(LAUNCHER_PATH, { recursive: true });
+    await fs.mkdir(path.join(LAUNCHER_PATH, 'mods'), { recursive: true }); // Папка для модов лаунчера
     await fs.mkdir(VERSIONS_PATH, { recursive: true });
     await fs.mkdir(VERSION_PATH, { recursive: true });
     await fs.mkdir(MODS_PATH, { recursive: true });
@@ -1964,29 +1991,94 @@ function tryOldMethod(resolve) {
 }
 
 // Путь к локальному аватару Discord бота
-function getDiscordBotAvatar() {
-    // Используем локальный файл аватара, если он есть
-    const avatarPath = path.join(__dirname, 'assets', 'angella-avatar.png');
-    const fs = require('fs');
+// Кэш для аватара бота
+let botAvatarCache = null;
+let botAvatarCacheTime = 0;
+const BOT_AVATAR_CACHE_DURATION = 5 * 60 * 1000; // 5 минут
+
+// Получение аватара бота из Discord API
+async function getDiscordBotAvatar() {
+    const BOT_ID = '1339807926377775182';
     
-    if (fs.existsSync(avatarPath)) {
-        // В Electron используем правильный путь для file:// протокола
-        // На Windows нужно использовать формат file:///C:/path/to/file
+    // Проверяем кэш
+    if (botAvatarCache && (Date.now() - botAvatarCacheTime) < BOT_AVATAR_CACHE_DURATION) {
+        return botAvatarCache;
+    }
+    
+    try {
+        // Пытаемся получить аватар из Discord API
+        const response = await new Promise((resolve, reject) => {
+            const req = https.get(`https://discord.com/api/v10/users/${BOT_ID}`, {
+                headers: {
+                    'User-Agent': 'DiscordBot (AngellaLauncher, 1.0.0)'
+                },
+                timeout: 3000
+            }, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        resolve(JSON.parse(data));
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+            });
+            req.on('error', reject);
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Timeout'));
+            });
+        });
+        
+        if (response.avatar) {
+            const avatarUrl = `https://cdn.discordapp.com/avatars/${BOT_ID}/${response.avatar}.png?size=128`;
+            console.log('[Main] Discord bot avatar URL:', avatarUrl);
+            // Сохраняем в кэш
+            botAvatarCache = avatarUrl;
+            botAvatarCacheTime = Date.now();
+            return avatarUrl;
+        }
+    } catch (error) {
+        console.warn('[Main] Failed to fetch Discord bot avatar:', error.message);
+    }
+    
+    // Fallback на локальный файл
+    const avatarPath = path.join(__dirname, 'assets', 'angella-avatar.png');
+    if (fsSync.existsSync(avatarPath)) {
         let filePath = avatarPath.replace(/\\/g, '/');
         if (!filePath.startsWith('/')) {
             filePath = '/' + filePath;
         }
-        return `file://${filePath}`;
+        const localAvatar = `file://${filePath}`;
+        // Кэшируем локальный аватар
+        botAvatarCache = localAvatar;
+        botAvatarCacheTime = Date.now();
+        return localAvatar;
     }
     
     // Fallback на дефолтный аватар Discord
-    return 'https://cdn.discordapp.com/embed/avatars/0.png';
+    const defaultAvatar = 'https://cdn.discordapp.com/embed/avatars/0.png';
+    botAvatarCache = defaultAvatar;
+    botAvatarCacheTime = Date.now();
+    return defaultAvatar;
 }
 
-// Синхронная версия для fallback методов
+// Синхронная версия для fallback методов (использует кэш или fallback)
 function addDiscordBotToListSync(players) {
     const BOT_NAME = 'Angella';
-    const BOT_AVATAR = getDiscordBotAvatar();
+    // Используем локальный файл для синхронной версии
+    const avatarPath = path.join(__dirname, 'assets', 'angella-avatar.png');
+    let BOT_AVATAR;
+    if (fsSync.existsSync(avatarPath)) {
+        let filePath = avatarPath.replace(/\\/g, '/');
+        if (!filePath.startsWith('/')) {
+            filePath = '/' + filePath;
+        }
+        BOT_AVATAR = `file://${filePath}`;
+    } else {
+        BOT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
+    }
     const BOT_AVATAR_FALLBACK = 'https://cdn.discordapp.com/embed/avatars/0.png';
     
     const botExists = players.some(p => {
@@ -2015,8 +2107,8 @@ async function addDiscordBotToList(players) {
     const BOT_NAME = 'Angella';
     const BOT_AVATAR_FALLBACK = 'https://cdn.discordapp.com/embed/avatars/0.png';
     
-    // Получаем аватар (локальный файл или fallback)
-    const botAvatar = getDiscordBotAvatar();
+    // Получаем аватар из Discord API
+    const botAvatar = await getDiscordBotAvatar();
     
     // Проверяем, нет ли уже бота в списке
     const botExists = players.some(p => {
