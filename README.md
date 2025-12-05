@@ -4,13 +4,19 @@
 
 ## 📸 Скриншоты
 
-<!-- Тут фото интерфейса -->
-![Интерфейс лаунчера](screenshots/interface.png)
+Производительность :
+Before
+<img width="1280" height="737" alt="image" src="https://github.com/user-attachments/assets/4c285fde-1c56-4ede-b561-027af22ce95c" />
 
-<!-- Тут фото сравнение производительности -->
-![Сравнение производительности](screenshots/performance.png)
+After :
+<img width="1280" height="742" alt="image" src="https://github.com/user-attachments/assets/1506df93-eb65-4bee-9f18-d5a9d730cc84" />
 
+
+Before :
 ![photo_2025-12-04_14-09-21](https://github.com/user-attachments/assets/3db6ef8d-a681-467d-a3c9-8a7b7ce0a2a5)
+After :
+<img width="1580" height="922" alt="{10037B80-E8F6-4102-AA23-1BE5A74121F8}" src="https://github.com/user-attachments/assets/4e8e68b3-326b-4460-a0da-e335663ff322" />
+
 
 
 
