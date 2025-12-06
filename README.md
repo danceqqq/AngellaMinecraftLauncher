@@ -2,13 +2,31 @@
 
 Кастомный лаунчер для нашего хардкор сервера Minecraft на Electron. Вся нужная фигня в одном месте - профили, запуск игры с Fabric, интерактивная карта сервера и интеграция с Discord ботом.
 
-## 📸 Скриншоты
+## 🔄 Before & After 
 
-<!-- Тут фото интерфейса -->
-![Интерфейс лаунчера](screenshots/interface.png)
+### Встроенная оптимизация
+<table>
+  <tr>
+    <th width="50%">Before</th>
+    <th width="50%">After</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://github.com/user-attachments/assets/4c285fde-1c56-4ede-b561-027af22ce95c" width="100%" alt="Before interface"></td>
+    <td align="center"><img src="https://github.com/user-attachments/assets/1506df93-eb65-4bee-9f18-d5a9d730cc84" width="100%" alt="After interface"></td>
+  </tr>
+</table>
 
-<!-- Тут фото сравнение производительности -->
-![Сравнение производительности](screenshots/performance.png)
+### Изменение интерфейса
+<table>
+  <tr>
+    <th width="50%">Before</th>
+    <th width="50%">After</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://github.com/user-attachments/assets/3db6ef8d-a681-467d-a3c9-8a7b7ce0a2a5" width="100%" alt="Before layout"></td>
+    <td align="center"><img src="https://github.com/user-attachments/assets/4e8e68b3-326b-4460-a0da-e335663ff322" width="100%" alt="After layout"></td>
+  </tr>
+</table>
 
 ## Описание проекта
 
