@@ -1,0 +1,32 @@
+appId: com.hardcore.minecraft.launcher
+productName: Hardcore Minecraft Launcher
+directories:
+  output: LauncherExe
+files:
+  - "**/*"
+  - "!node_modules/**/*"
+  - "!DiscordMinecraft/**/*"
+  - "!ClientFastJoinMod/**/*"
+  - "!*.md"
+  - "!*.bat"
+  - "!build-discord-bot.bat"
+  - "!cursor*.md"
+  - "node_modules/electron/**/*"
+  - "node_modules/adm-zip/**/*"
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  icon: icon.ico
+  sign: false
+  signDlls: false
+  verifyUpdateCodeSignature: false
+  certificateFile: ""
+  certificatePassword: ""
+  publisherName: ""
+portable:
+  artifactName: "${productName}-${version}-portable.exe"
+compression: maximum
+
+

@@ -5,8 +5,9 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
-    "build-win": "electron-builder --win"
+    "build": "electron-packager . \"Hardcore Minecraft Launcher\" --platform=win32 --arch=x64 --out=LauncherExe --overwrite --asar --no-prune --ignore=\"^(DiscordMinecraft|ClientFastJoinMod|ServerMods|ClientMods|LauncherExe|build-.*\\.bat|create-.*\\.ps1|certificate\\.pfx|electron-builder\\.yml|cursor.*\\.md)$\"",
+    "build-win": "npm run build",
+    "pack": "npm run build"
   },
   "keywords": [
     "minecraft",
@@ -16,32 +17,76 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "adm-zip": "^0.5.16"
+    "adm-zip": "^0.5.16",
+    "smart-buffer": "^4.2.0",
+    "socks": "^2.8.7"
   },
   "devDependencies": {
     "electron": "^27.0.0",
-    "electron-builder": "^24.6.4"
+    "electron-builder": "^26.0.12",
+    "electron-packager": "^17.1.2"
   },
+  "bundledDependencies": [
+    "adm-zip",
+    "smart-buffer",
+    "socks"
+  ],
   "build": {
     "appId": "com.hardcore.minecraft.launcher",
     "productName": "Hardcore Minecraft Launcher",
     "directories": {
-      "output": "dist"
+      "output": "LauncherExe"
     },
     "files": [
-      "**/*",
-      "!node_modules/**/*",
-      "node_modules/electron/**/*"
+      "main.js",
+      "renderer.js",
+      "index.html",
+      "styles.css",
+      "img/**/*",
+      "assets/**/*",
+      "package.json",
+      "node_modules/**/*",
+      "!DiscordMinecraft/**/*",
+      "!ClientFastJoinMod/**/*",
+      "!ServerMods/**/*",
+      "!ClientMods/**/*",
+      "!LauncherExe/**/*",
+      "!*.md",
+      "!*.bat",
+      "!*.ps1",
+      "!build.js",
+      "!build-discord-bot.bat",
+      "!cursor*.md",
+      "!electron-builder.yml",
+      "!config.example.js",
+      "!launcherapi-*.jar",
+      "node_modules/adm-zip/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/adm-zip/**/*"
     ],
     "win": {
       "target": [
-        "nsis"
-      ],
-      "icon": "icon.ico"
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.exe"
+    },
+    "compression": "maximum",
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }
-  }
+  },
+  "bundleDependencies": [
+    "adm-zip",
+    "smart-buffer",
+    "socks"
+  ]
 }

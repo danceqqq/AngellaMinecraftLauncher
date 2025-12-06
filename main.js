@@ -6,6 +6,9 @@ const { exec } = require('child_process');
 const https = require('https');
 const http = require('http');
 
+// Определяем режим разработки
+const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
+
 // Загружаем adm-zip с обработкой ошибок
 let AdmZip;
 try {
@@ -16,24 +19,37 @@ try {
     // Продолжаем работу, но извлечение нативных библиотек не будет работать
 }
 
-// Включаем WebGL2 для BlueMap
+// Оптимизация производительности Electron
+if (!isDev) {
+    // Минимальные оптимизации, не отключаем софт-растр для WebGL
+    app.commandLine.appendSwitch('disable-dev-shm-usage');
+    app.commandLine.appendSwitch('disable-background-timer-throttling');
+    app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+    app.commandLine.appendSwitch('disable-renderer-backgrounding');
+    app.commandLine.appendSwitch('disable-features', 'TranslateUI');
+    app.commandLine.appendSwitch('disable-ipc-flooding-protection');
+}
+
+// Включаем WebGL2 для BlueMap (только необходимые флаги)
 app.commandLine.appendSwitch('enable-webgl2');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-zero-copy');
-app.commandLine.appendSwitch('ignore-gpu-blacklist');
-app.commandLine.appendSwitch('enable-features', 'WebGL2ComputeContext');
 app.commandLine.appendSwitch('use-gl', 'desktop');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-webgl');
 
 const PROFILE_FILE = path.join(app.getPath('userData'), 'profiles.json');
-// Используем .angelauncher вместо .minecraft
+// Используем .angelauncher, но assets берем из стандартной .minecraft (там есть языки и фоны)
+const MC_DEFAULT_PATH = path.join(process.env.APPDATA, '.minecraft');
 const LAUNCHER_PATH = path.join(process.env.APPDATA, '.angelauncher');
 const VERSIONS_PATH = path.join(LAUNCHER_PATH, 'versions');
 const VERSION_ID = 'fabric-1.21.8';
 const VERSION_PATH = path.join(VERSIONS_PATH, VERSION_ID);
 const MODS_PATH = path.join(VERSION_PATH, 'mods');
 const LIBRARIES_PATH = path.join(LAUNCHER_PATH, 'libraries');
-const ASSETS_PATH = path.join(LAUNCHER_PATH, 'assets');
+// Для ассетов в первую очередь используем стандартную .minecraft, чтобы не потерять языки/ресурсы меню
+const ASSETS_PATH = fsSync.existsSync(path.join(MC_DEFAULT_PATH, 'assets'))
+    ? path.join(MC_DEFAULT_PATH, 'assets')
+    : path.join(LAUNCHER_PATH, 'assets');
 
 // Настройки Fabric
 const MINECRAFT_VERSION = '1.21.8';
@@ -69,33 +85,59 @@ function createWindow() {
             enableRemoteModule: true,
             webSecurity: false, // Для загрузки внешних iframe (BlueMap)
             webgl: true,
-            experimentalFeatures: true,
+            experimentalFeatures: isDev, // Только в режиме разработки
             plugins: true,
             offscreen: false,
-            backgroundThrottling: false, // Отключаем throttling для лучшей производительности
-            enableWebSQL: false
+            backgroundThrottling: true, // Включаем throttling для экономии ресурсов
+            enableWebSQL: false,
+            // Оптимизации производительности
+            spellcheck: false,
+            enableBlinkFeatures: '',
+            disableBlinkFeatures: 'Auxclick'
         },
         icon: path.join(__dirname, 'icon.png'), // Опционально
         titleBarStyle: 'default',
         backgroundColor: '#0a0a0f',
         frame: true,
-        show: false // Показываем после загрузки
-    });
-
-    mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
+        show: true, // Показываем сразу
+        // Оптимизации производительности окна
+        paintWhenInitiallyHidden: false,
+        skipTaskbar: false,
+        autoHideMenuBar: !isDev
     });
 
     mainWindow.loadFile('index.html');
     
-    // Открываем DevTools для отладки
-    mainWindow.webContents.openDevTools();
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
+    });
     
-    // Увеличиваем приоритет процесса для лучшей производительности
-    if (process.platform === 'win32') {
+    // Принудительно показываем окно через 1 секунду, если ready-to-show не сработал
+    setTimeout(() => {
+        if (mainWindow && !mainWindow.isVisible()) {
+            mainWindow.show();
+        }
+    }, 1000);
+    
+    // Обработка ошибок загрузки
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+        console.error('[Main] Failed to load:', errorCode, errorDescription);
+        // Показываем окно даже при ошибке
+        if (mainWindow && !mainWindow.isVisible()) {
+            mainWindow.show();
+        }
+    });
+    
+    // Открываем DevTools только в режиме разработки
+    if (isDev) {
+        mainWindow.webContents.openDevTools();
+    }
+    
+    // Оптимизация производительности процесса
+    if (process.platform === 'win32' && !isDev) {
         try {
-            const { exec } = require('child_process');
-            exec(`wmic process where ProcessId=${process.pid} CALL setpriority "high priority"`, () => {});
+            // В продакшене устанавливаем нормальный приоритет (не high, чтобы не жрать ресурсы)
+            exec(`wmic process where ProcessId=${process.pid} CALL setpriority "normal"`, () => {});
         } catch (e) {}
     }
     
@@ -125,7 +167,18 @@ function createWindow() {
     });
     
     // Оптимизация производительности для BlueMap
-    mainWindow.webContents.setFrameRate(60);
+    // Снижаем FPS в продакшене для экономии ресурсов
+    mainWindow.webContents.setFrameRate(isDev ? 60 : 30);
+    
+    // Оптимизация памяти
+    if (!isDev) {
+        // Очистка кэша при неактивности
+        setInterval(() => {
+            if (mainWindow && !mainWindow.isFocused()) {
+                mainWindow.webContents.session.clearCache();
+            }
+        }, 5 * 60 * 1000); // Каждые 5 минут
+    }
 
     // Открытие DevTools в режиме разработки (можно убрать в продакшене)
     // mainWindow.webContents.openDevTools();
