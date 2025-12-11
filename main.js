@@ -31,6 +31,7 @@ if (!isDev) {
 }
 
 // Включаем WebGL2 для BlueMap (только необходимые флаги)
+app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('enable-webgl2');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('use-gl', 'desktop');
@@ -167,8 +168,19 @@ function createWindow() {
     });
     
     // Оптимизация производительности для BlueMap
-    // Снижаем FPS в продакшене для экономии ресурсов
-    mainWindow.webContents.setFrameRate(isDev ? 60 : 30);
+    // Снижаем FPS в продакшене для экономии ресурсов + динамика по фокусу
+    const baseFrameRate = isDev ? 60 : 30;
+    mainWindow.webContents.setFrameRate(baseFrameRate);
+    mainWindow.on('focus', () => {
+        try {
+            mainWindow.webContents.setFrameRate(baseFrameRate);
+        } catch (e) {}
+    });
+    mainWindow.on('blur', () => {
+        try {
+            mainWindow.webContents.setFrameRate(isDev ? 45 : 20);
+        } catch (e) {}
+    });
     
     // Оптимизация памяти
     if (!isDev) {
@@ -1099,6 +1111,20 @@ ipcMain.handle('launch-game', async (event, data) => {
                     });
                     
                     resolve({ success: true, pid: childProcess.pid });
+                    
+                    if (settings.closeLauncherAfterLaunch) {
+                        console.log('[Main] Closing launcher after successful start (user setting)');
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            mainWindow.hide();
+                        }
+                        setTimeout(() => {
+                            try {
+                                app.quit();
+                            } catch (e) {
+                                console.error('[Main] Failed to quit after launch:', e.message);
+                            }
+                        }, 1500);
+                    }
                 } else {
                     // Если процесс не запустился, проверяем ошибки
                     console.error('[Main] Process has no PID or exited. stderr:', stderrBuffer.substring(0, 1000));

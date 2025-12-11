@@ -306,6 +306,7 @@ function setupSettingsPanel() {
     const fullscreenCheckbox = document.getElementById('fullscreen-checkbox');
     const quickPlayCheckbox = document.getElementById('quick-play-checkbox');
     const javaArgsInput = document.getElementById('java-args-input');
+    const closeAfterLaunchCheckbox = document.getElementById('close-after-launch-checkbox');
     
     if (ramSlider) {
         ramSlider.addEventListener('input', (e) => {
@@ -334,6 +335,9 @@ function setupSettingsPanel() {
     }
     if (javaArgsInput) {
         javaArgsInput.addEventListener('change', saveLaunchSettings);
+    }
+    if (closeAfterLaunchCheckbox) {
+        closeAfterLaunchCheckbox.addEventListener('change', saveLaunchSettings);
     }
     
     // Кнопка открытия папки Minecraft
@@ -381,6 +385,7 @@ function loadLaunchSettings() {
         const performanceModeCheckbox = document.getElementById('performance-mode-checkbox');
         const debugModeCheckbox = document.getElementById('debug-mode-checkbox');
         const javaArgsInput = document.getElementById('java-args-input');
+        const closeAfterLaunchCheckbox = document.getElementById('close-after-launch-checkbox');
         
         if (ramSlider && settings.maxRam) {
             const ramGB = parseInt(settings.maxRam.replace('G', ''));
@@ -409,6 +414,9 @@ function loadLaunchSettings() {
             displayArgs = displayArgs.replace('-Dfabric.development=true -Dfabric.log.level=debug', '').trim();
             javaArgsInput.value = displayArgs;
         }
+        if (closeAfterLaunchCheckbox) {
+            closeAfterLaunchCheckbox.checked = settings.closeLauncherAfterLaunch || false;
+        }
     } catch (error) {
         console.error('[Renderer] Error loading launch settings:', error);
     }
@@ -424,6 +432,7 @@ async function saveLaunchSettings() {
         const performanceModeCheckbox = document.getElementById('performance-mode-checkbox');
         const debugModeCheckbox = document.getElementById('debug-mode-checkbox');
         const javaArgsInput = document.getElementById('java-args-input');
+        const closeAfterLaunchCheckbox = document.getElementById('close-after-launch-checkbox');
         
         // Собираем Java аргументы
         let javaArgs = javaArgsInput?.value || '';
@@ -447,6 +456,7 @@ async function saveLaunchSettings() {
             quickPlay: quickPlayCheckbox?.checked !== false,
             performanceMode: performanceModeCheckbox?.checked || false,
             debugMode: debugModeCheckbox?.checked || false,
+            closeLauncherAfterLaunch: closeAfterLaunchCheckbox?.checked || false,
             javaArgs: javaArgs
         };
         
@@ -465,7 +475,8 @@ function getLaunchSettings() {
             minRam: settings.minRam || '1G',
             fullscreen: settings.fullscreen || false,
             quickPlay: settings.quickPlay !== false,
-            javaArgs: settings.javaArgs || ''
+            javaArgs: settings.javaArgs || '',
+            closeLauncherAfterLaunch: settings.closeLauncherAfterLaunch || false
         };
     } catch (error) {
         console.error('[Renderer] Error getting launch settings:', error);
@@ -474,7 +485,8 @@ function getLaunchSettings() {
             minRam: '1G',
             fullscreen: false,
             quickPlay: true,
-            javaArgs: ''
+            javaArgs: '',
+            closeLauncherAfterLaunch: false
         };
     }
 }

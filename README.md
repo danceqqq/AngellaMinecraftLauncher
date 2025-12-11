@@ -1,3 +1,76 @@
+# Hardcore Launcher & Angella Bot (Fabric 1.21.8)
+
+Готовый к публикации набор исходников: Electron‑лаунчер, серверный и клиентский Fabric‑моды, Discord‑бот с LLM ответами в игровом чате. Секретов нет — токены нужно вписать вручную в конфиг после сборки.
+
+## Состав
+- **Launcher (Electron)**: `main.js`, `renderer.js`, `index.html`, `styles.css`, `package.json`.
+- **Server mod (Fabric)**: `ServerMods/` — HTTP API для лаунчера (онлайн, статистика, скины).
+- **Client mod (Fabric)**: `ClientMods/` — помечает игроков, пришедших через лаунчер.
+- **Discord/MC Bot (Fabric)**: `DiscordMinecraft/` — Discord нотификации + LLM чат-ответы в игре.
+
+## Требования
+- Windows 10/11; Node.js 18+; Java 21; Git.
+
+## Быстрый старт (сборка)
+```bash
+# Лаунчер
+npm install
+
+# Бот/мод (JAR)
+cd DiscordMinecraft
+gradlew.bat build
+
+# Серверный мод
+cd ../ServerMods
+gradlew.bat build
+
+# Клиентский мод
+cd ../ClientMods
+gradlew.bat build
+```
+
+## Конфиг и секреты
+- Пример: `DiscordMinecraft/config/angella.example.json`
+- Рабочий: `config/angella.json` (создастся на сервере при первом запуске) — вписать:
+  - `botToken` — Discord Bot Token
+  - `hfToken` — HuggingFace Inference Token
+- В коде токены пустые; в репо секреты не храним.
+
+## Что проверить перед пушем
+- Нет бинарей: `LauncherExe/`, `dist/`, `**/build/`, `**/.gradle/`, `*.jar`, `*.log`, `certificate.pfx`.
+- Конфиг с секретами (`config/angella.json`) отсутствует; пример `angella.example.json` на месте.
+
+## LLM функционал (Angella)
+- Источник: HuggingFace Inference (`deepseek-ai/DeepSeek-V3.2:novita`), потоково через OpenAI-совместимый REST.
+- Память: файловая, `config/angella/contexts/*.json`, на сервере.
+- Персона: тёплый, человеческий тон, короткие ответы; follow-up без упоминания в течение ~90 секунд.
+- Кулдаун: 8с на игрока; история до 32 сообщений; макс 640 токенов ответа.
+- Ник в чате: градиент розовый → телесный.
+
+## Changelog (основное)
+- **1.1.0 (launcher/ui/LLM)**
+  - WebGL2 включён для BlueMap в лаунчере.
+  - Прокрутка и раскрывающиеся карты/настройки; кастомный скроллбар.
+  - Градиент ника Angella, follow-up ответы в чате, расширенная история LLM.
+- **1.0.6 (bot/mod)**
+  - Обновления бота/LLM настроек, повышение лимитов, прогрев контекста.
+- **1.0.0**
+  - Базовый лаунчер, серверный API мод, клиентский мод, Discord бот с уведомлениями.
+
+## Структура
+```
+publish/
+  main.js, renderer.js, index.html, styles.css, package.json
+  ServerMods/
+  ClientMods/
+  DiscordMinecraft/
+  PUBLISHING.md
+  .gitignore
+  (без build/, .gradle/, LauncherExe/, dist/, *.jar, *.log)
+```
+
+## Лицензия
+MIT (смотрите LICENSE в соответствующих подпроектах).
 # Minecraft Hardcore Launcher
 
 Кастомный лаунчер для нашего хардкор сервера Minecraft на Electron. Вся нужная фигня в одном месте - профили, запуск игры с Fabric, интерактивная карта сервера и интеграция с Discord ботом.

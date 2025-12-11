@@ -1006,7 +1006,7 @@ body::before {
 }
 
 .expandable.expanded {
-    max-height: 800px;
+    max-height: calc(100vh - 140px);
     border-color: var(--primary-color);
     box-shadow: var(--shadow-lg), 0 0 30px rgba(0, 212, 255, 0.4);
     z-index: 10;
@@ -1055,7 +1055,7 @@ body::before {
     margin-top: 10px;
     cursor: pointer;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .settings-section h2 {
@@ -1072,12 +1072,38 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.settings-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+    border-radius: 10px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--primary-light), var(--primary-color));
+}
+
+.settings-section.expanded .settings-content {
+    max-height: calc(100vh - 220px);
 }
 
 .setting-group {
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+.settings-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .setting-group label {

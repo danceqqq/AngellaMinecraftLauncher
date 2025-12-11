@@ -57,15 +57,6 @@
                             📁
                         </button>
                     </div>
-                    <div class="update-section">
-                        <button class="btn btn-secondary" id="check-update-btn">
-                            🔄 Проверить обновления
-                        </button>
-                        <button class="btn btn-secondary" id="install-fabric-btn">
-                            🔧 Установить Fabric
-                        </button>
-                        <div class="update-status" id="update-status"></div>
-                    </div>
                 </div>
 
             </div>
@@ -81,7 +72,7 @@
                             frameborder="0"
                             allowfullscreen
                             allow="webgl2; fullscreen"
-                            loading="eager">
+                            loading="lazy">
                         </iframe>
                     </div>
                 </div>
@@ -89,7 +80,7 @@
                 <!-- Панель настроек запуска -->
                 <div class="settings-section expandable" id="settings-expandable">
                     <h2 class="section-header">⚙️ Настройки запуска</h2>
-                    <div class="settings-content">
+                    <div class="settings-content settings-scrollable">
                         <div class="setting-group">
                             <label for="ram-slider">
                                 Оперативная память (RAM): <span id="ram-value">2 GB</span>
@@ -129,6 +120,12 @@
                         </div>
                         <div class="setting-group">
                             <label>
+                                <input type="checkbox" id="close-after-launch-checkbox" class="setting-checkbox">
+                                Закрывать лаунчер после запуска игры
+                            </label>
+                        </div>
+                        <div class="setting-group">
+                            <label>
                                 <input type="checkbox" id="debug-mode-checkbox" class="setting-checkbox">
                                 Режим отладки (Debug)
                             </label>
@@ -136,6 +133,17 @@
                         <div class="setting-group">
                             <label for="java-args-textarea">Дополнительные аргументы Java:</label>
                             <textarea id="java-args-input" class="setting-textarea" rows="2" placeholder="-Dsome.property=value"></textarea>
+                        </div>
+                        <div class="setting-group fabric-actions">
+                            <div class="settings-actions-row">
+                                <button class="btn btn-secondary" id="check-update-btn">
+                                    🔄 Проверить обновления
+                                </button>
+                                <button class="btn btn-secondary" id="install-fabric-btn">
+                                    🔧 Установить / переустановить Fabric
+                                </button>
+                            </div>
+                            <div class="update-status" id="update-status"></div>
                         </div>
                     </div>
                 </div>

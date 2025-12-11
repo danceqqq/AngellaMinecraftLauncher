@@ -1,3 +1,20 @@
+# Build outputs and caches
+**/build/
+**/.gradle/
+**/bin/
+DiscordMinecraft/run/logs/
+
+# Local configs and secrets
+config/angella.json
+*.log
+
+# Electron build artifacts
+LauncherExe/
+dist/
+
+# OS noise
+Thumbs.db
+*.DS_Store
 node_modules/
 dist/
 *.log
